@@ -1,6 +1,6 @@
 # candle-quantized-qwen2.5-instruct
 
-[Qwen2.5]((https://qwenlm.github.io/blog/qwen2.5/)) is an upgraded version of Qwen2, released by Alibaba Cloud.
+[Qwen2.5](https://qwenlm.github.io/blog/qwen2.5/) is an upgraded version of Qwen2, released by Alibaba Cloud.
 
 ## Running the example
 
