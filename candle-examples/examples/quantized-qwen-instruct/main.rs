@@ -17,6 +17,7 @@ use candle_transformers::models::quantized_qwen2::ModelWeights as Qwen2;
 
 const DEFAULT_PROMPT: &str = "Write a function to count prime numbers up to N. ";
 
+// Follow the naming convertion from candle-examples/examples/llama/main.rs
 #[derive(Clone, Debug, Copy, PartialEq, Eq, ValueEnum)]
 enum Which {
     #[value(name = "2-0.5b")]
