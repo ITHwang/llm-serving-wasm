@@ -1,4 +1,4 @@
-# candle-quantized-qwen2-instruct
+# candle-quantized-qwen-instruct
 
 - [Qwen2]((https://qwenlm.github.io/blog/qwen2/)) is an upgraded version of Qwen1.5, released by Alibaba Cloud.
 - [Qwen2.5](https://qwenlm.github.io/blog/qwen2.5/) is an upgraded version of Qwen2, released by Alibaba Cloud.
@@ -6,7 +6,7 @@
 ## Running the example
 
 ```bash
-cargo run --example quantized-qwen2-instruct --release -- --prompt "Write a function to count prime numbers up to N."
+cargo run --example quantized-qwen-instruct --release -- --prompt "Write a function to count prime numbers up to N."
 ```
 
 - Available models via `--which` argument:
