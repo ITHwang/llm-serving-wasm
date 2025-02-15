@@ -1,6 +1,7 @@
 # candle-quantized-qwen2-instruct
 
-[Qwen2]((https://qwenlm.github.io/blog/qwen2/)) is an upgraded version of Qwen1.5, released by Alibaba Cloud.
+- [Qwen2]((https://qwenlm.github.io/blog/qwen2/)) is an upgraded version of Qwen1.5, released by Alibaba Cloud.
+- [Qwen2.5](https://qwenlm.github.io/blog/qwen2.5/) is an upgraded version of Qwen2, released by Alibaba Cloud.
 
 ## Running the example
 
@@ -8,4 +9,13 @@
 cargo run --example quantized-qwen2-instruct --release -- --prompt "Write a function to count prime numbers up to N."
 ```
 
-0.5b, 1.5b, 7b and 72b models are available via `--model` argument.
+- Available models via `--which` argument:
+    - "2-0.5b": Qwen/Qwen2-0.5B-Instruct
+    - "2-1.5b": Qwen/Qwen2-1.5B-Instruct  
+    - "2-7b": Qwen/Qwen2-7B-Instruct
+    - "2-72b": Qwen/Qwen2-72B-Instruct
+    - "2.5-0.5b": Qwen/Qwen2.5-0.5B-Instruct
+    - "2.5-1.5b": Qwen/Qwen2.5-1.5B-Instruct
+    - "2.5-7b": Qwen/Qwen2.5-7B-Instruct
+    - "2.5-14b": Qwen/Qwen2.5-14B-Instruct
+    - "2.5-32b": Qwen/Qwen2.5-32B-Instruct

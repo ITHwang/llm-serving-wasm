@@ -19,14 +19,24 @@ const DEFAULT_PROMPT: &str = "Write a function to count prime numbers up to N. "
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, ValueEnum)]
 enum Which {
-    #[value(name = "0.5b")]
+    #[value(name = "2-0.5b")]
     W2_0_5b,
-    #[value(name = "1.5b")]
+    #[value(name = "2-1.5b")]
     W2_1_5b,
-    #[value(name = "7b")]
+    #[value(name = "2-7b")]
     W2_7b,
-    #[value(name = "72b")]
+    #[value(name = "2-72b")]
     W2_72b,
+    #[value(name = "2.5-0.5b")]
+    W2_5_0_5b,
+    #[value(name = "2.5-1.5b")]
+    W2_5_1_5b,
+    #[value(name = "2.5-7b")]
+    W2_5_7b,
+    #[value(name = "2.5-14b")]
+    W2_5_14b,
+    #[value(name = "2.5-32b")]
+    W2_5_32b,
 }
 
 #[derive(Parser, Debug)]
@@ -87,7 +97,7 @@ struct Args {
     repeat_last_n: usize,
 
     /// The model size to use.
-    #[arg(long, default_value = "0.5b")]
+    #[arg(long, default_value = "2.5-0.5b")]
     which: Which,
 }
 
@@ -102,6 +112,11 @@ impl Args {
                     Which::W2_1_5b => "Qwen/Qwen2-1.5B-Instruct",
                     Which::W2_7b => "Qwen/Qwen2-7B-Instruct",
                     Which::W2_72b => "Qwen/Qwen2-72B-Instruct",
+                    Which::W2_5_0_5b => "Qwen/Qwen2.5-0.5B-Instruct",
+                    Which::W2_5_1_5b => "Qwen/Qwen2.5-1.5B-Instruct",
+                    Which::W2_5_7b => "Qwen/Qwen2.5-7B-Instruct",
+                    Which::W2_5_14b => "Qwen/Qwen2.5-14B-Instruct",
+                    Which::W2_5_32b => "Qwen/Qwen2.5-32B-Instruct",
                 };
                 let api = api.model(repo.to_string());
                 api.get("tokenizer.json")?
@@ -133,6 +148,31 @@ impl Args {
                     Which::W2_72b => (
                         "Qwen/Qwen2-72B-Instruct-GGUF",
                         "qwen2-72b-instruct-q4_0.gguf",
+                        "main",
+                    ),
+                    Which::W2_5_0_5b => (
+                        "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+                        "qwen2.5-0.5b-instruct-q4_0.gguf",
+                        "main",
+                    ),
+                    Which::W2_5_1_5b => (
+                        "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+                        "qwen2.5-1.5b-instruct-q4_0.gguf",
+                        "main",
+                    ),
+                    Which::W2_5_7b => (
+                        "Qwen/Qwen2.5-7B-Instruct-GGUF",
+                        "qwen2.5-7b-instruct-q4_0.gguf",
+                        "main",
+                    ),
+                    Which::W2_5_14b => (
+                        "Qwen/Qwen2.5-14B-Instruct-GGUF",
+                        "qwen2.5-14b-instruct-q4_0.gguf",
+                        "main",
+                    ),
+                    Which::W2_5_32b => (
+                        "Qwen/Qwen2.5-32B-Instruct-GGUF",
+                        "qwen2.5-32b-instruct-q4_0.gguf",
                         "main",
                     ),
                 };
