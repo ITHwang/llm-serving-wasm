@@ -20,10 +20,13 @@
 
 ### CLI Serving
 - [x] Qwen2-Instruct
+- [x] Quantized Qwen2-Instruct(*-q4_0.gguf)
 - [x] Qwen2.5-Instruct
+- [x] Quantized Qwen2.5-Instruct(*-q4_0)
 
 ### WASM Serving
 - [ ] Qwen2.5-Instruct
+- [ ] Quantized Qwen2.5-Instruct(*-q4_0)
 
 ## License
 - This repository was forked from the original `candle` repository which is licensed under the Apache License Version 2.0.
