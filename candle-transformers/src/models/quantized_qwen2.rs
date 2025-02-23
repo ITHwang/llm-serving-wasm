@@ -13,13 +13,15 @@
 //! - [Model Card](https://huggingface.co/Qwen/Qwen2)
 //!
 
-use crate::{quantized_nn::RmsNorm, utils::repeat_kv};
+use crate::models::qwen2::Config;
+use crate::{quantized_nn::RmsNorm, quantized_var_builder::VarBuilder, utils::repeat_kv};
 use candle::{
     quantized::{gguf_file, QMatMul},
     DType, Device, IndexOp, Result, Tensor,
 };
 use candle_nn::{Embedding, Module};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 struct Mlp {
@@ -178,6 +180,127 @@ fn precomput_freqs_cis(
 }
 
 impl ModelWeights {
+    pub fn clear_kv_cache(&mut self) {
+        for layer in self.layers.iter_mut() {
+            layer.kv_cache = None;
+        }
+    }
+
+    pub fn from_vb(cfg: &Config, vb: VarBuilder) -> Result<Self> {
+        let device = vb.device();
+
+        let head_count = cfg.num_attention_heads;
+        let head_count_kv = cfg.num_key_value_heads;
+        let embedding_length = cfg.hidden_size;
+        let context_length = cfg.max_position_embeddings;
+        let block_count = cfg.num_hidden_layers;
+        let rms_norm_eps = cfg.rms_norm_eps;
+        let rope_freq_base = cfg.rope_theta as f32;
+
+        let head_dim = embedding_length / head_count;
+
+        let neg_inf = Tensor::new(f32::NEG_INFINITY, device)?;
+
+        let tok_embeddings = vb.get_no_shape("token_embd.weight")?;
+        let tok_embeddings = tok_embeddings.dequantize(device)?;
+        let norm = RmsNorm::from_qtensor(
+            Arc::try_unwrap(vb.get_no_shape("output_norm.weight")?).unwrap(),
+            rms_norm_eps,
+        )?;
+        let output = match vb.get_no_shape("output.weight") {
+            Ok(v) => QMatMul::from_qtensor(Arc::try_unwrap(v).unwrap())?,
+            _ => {
+                // use tie_word_embeddings
+                QMatMul::from_qtensor(
+                    Arc::try_unwrap(vb.get_no_shape("token_embd.weight")?).unwrap(),
+                )?
+            }
+        };
+
+        let (cos, sin) = precomput_freqs_cis(head_dim, rope_freq_base, context_length, device)?;
+
+        let mut layers = Vec::with_capacity(block_count);
+
+        for layer_idx in 0..block_count {
+            let prefix = format!("blk.{layer_idx}");
+            let attention_wq = vb.get_no_shape(&format!("{prefix}.attn_q.weight"))?;
+            let attention_wk = vb.get_no_shape(&format!("{prefix}.attn_k.weight"))?;
+            let attention_wv = vb.get_no_shape(&format!("{prefix}.attn_v.weight"))?;
+
+            let attention_bq = vb.get_no_shape(&format!("{prefix}.attn_q.bias"))?;
+            let attention_bk = vb.get_no_shape(&format!("{prefix}.attn_k.bias"))?;
+            let attention_bv = vb.get_no_shape(&format!("{prefix}.attn_v.bias"))?;
+
+            let attention_wo = vb.get_no_shape(&format!("{prefix}.attn_output.weight"))?;
+
+            let mlp = {
+                let feed_forward_w1 = vb.get_no_shape(&format!("{prefix}.ffn_gate.weight"))?;
+                let feed_forward_w2 = vb.get_no_shape(&format!("{prefix}.ffn_down.weight"))?;
+                let feed_forward_w3 = vb.get_no_shape(&format!("{prefix}.ffn_up.weight"))?;
+                Mlp {
+                    feed_forward_w1: QMatMul::from_qtensor(
+                        Arc::try_unwrap(feed_forward_w1).unwrap(),
+                    )?,
+                    feed_forward_w2: QMatMul::from_qtensor(
+                        Arc::try_unwrap(feed_forward_w2).unwrap(),
+                    )?,
+                    feed_forward_w3: QMatMul::from_qtensor(
+                        Arc::try_unwrap(feed_forward_w3).unwrap(),
+                    )?,
+                }
+            };
+
+            let attention_norm = RmsNorm::from_qtensor(
+                Arc::try_unwrap(vb.get_no_shape(&format!("{prefix}.attn_norm.weight"))?).unwrap(),
+                rms_norm_eps,
+            )?;
+            let ffn_norm = RmsNorm::from_qtensor(
+                Arc::try_unwrap(vb.get_no_shape(&format!("{prefix}.ffn_norm.weight"))?).unwrap(),
+                rms_norm_eps,
+            )?;
+
+            let span_attn = tracing::span!(tracing::Level::TRACE, "attn");
+            let span_rot = tracing::span!(tracing::Level::TRACE, "attn-rot");
+            let span_mlp = tracing::span!(tracing::Level::TRACE, "attn-mlp");
+
+            layers.push(LayerWeights {
+                attention_wq: QMatMul::from_qtensor(Arc::try_unwrap(attention_wq).unwrap())?,
+                attention_wk: QMatMul::from_qtensor(Arc::try_unwrap(attention_wk).unwrap())?,
+                attention_wv: QMatMul::from_qtensor(Arc::try_unwrap(attention_wv).unwrap())?,
+                attention_bq: attention_bq.dequantize(device)?,
+                attention_bk: attention_bk.dequantize(device)?,
+                attention_bv: attention_bv.dequantize(device)?,
+                attention_wo: QMatMul::from_qtensor(Arc::try_unwrap(attention_wo).unwrap())?,
+                attention_norm,
+                cos: cos.clone(),
+                sin: sin.clone(),
+                mlp,
+                ffn_norm,
+                n_head: head_count,
+                n_kv_head: head_count_kv,
+                head_dim,
+                neg_inf: neg_inf.clone(),
+                kv_cache: None,
+                span_attn,
+                span_rot,
+                span_mlp,
+            });
+        }
+
+        let span = tracing::span!(tracing::Level::TRACE, "model");
+        let span_output = tracing::span!(tracing::Level::TRACE, "output");
+
+        Ok(Self {
+            tok_embeddings: Embedding::new(tok_embeddings, embedding_length),
+            layers,
+            norm,
+            output,
+            masks: HashMap::new(),
+            span,
+            span_output,
+        })
+    }
+
     pub fn from_gguf<R: std::io::Seek + std::io::Read>(
         ct: gguf_file::Content,
         reader: &mut R,
