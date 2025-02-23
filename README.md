@@ -26,7 +26,7 @@
 
 ### WASM Serving
 - [ ] Qwen2.5-Instruct
-- [ ] Quantized Qwen2.5-Instruct(*-q4_0)
+- [ ] Quantized Qwen2.5-Instruct
 
 ## License
 - This repository was forked from the original `candle` repository which is licensed under the Apache License Version 2.0.
