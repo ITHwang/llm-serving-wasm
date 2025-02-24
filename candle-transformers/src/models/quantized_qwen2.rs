@@ -21,7 +21,6 @@ use candle::{
 };
 use candle_nn::{Embedding, Module};
 use std::collections::HashMap;
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 struct Mlp {
@@ -201,19 +200,13 @@ impl ModelWeights {
 
         let neg_inf = Tensor::new(f32::NEG_INFINITY, device)?;
 
-        let tok_embeddings = vb.get_no_shape("token_embd.weight")?;
-        let tok_embeddings = tok_embeddings.dequantize(device)?;
-        let norm = RmsNorm::from_qtensor(
-            Arc::try_unwrap(vb.get_no_shape("output_norm.weight")?).unwrap(),
-            rms_norm_eps,
-        )?;
+        let tok_embeddings = vb.get_no_shape("token_embd.weight")?.dequantize(device)?;
+        let norm = RmsNorm::from_arc(vb.get_no_shape("output_norm.weight")?, rms_norm_eps)?;
         let output = match vb.get_no_shape("output.weight") {
-            Ok(v) => QMatMul::from_qtensor(Arc::try_unwrap(v).unwrap())?,
+            Ok(v) => QMatMul::from_arc(v)?,
             _ => {
                 // use tie_word_embeddings
-                QMatMul::from_qtensor(
-                    Arc::try_unwrap(vb.get_no_shape("token_embd.weight")?).unwrap(),
-                )?
+                QMatMul::from_arc(vb.get_no_shape("token_embd.weight")?)?
             }
         };
 
@@ -223,39 +216,47 @@ impl ModelWeights {
 
         for layer_idx in 0..block_count {
             let prefix = format!("blk.{layer_idx}");
-            let attention_wq = vb.get_no_shape(&format!("{prefix}.attn_q.weight"))?;
-            let attention_wk = vb.get_no_shape(&format!("{prefix}.attn_k.weight"))?;
-            let attention_wv = vb.get_no_shape(&format!("{prefix}.attn_v.weight"))?;
 
-            let attention_bq = vb.get_no_shape(&format!("{prefix}.attn_q.bias"))?;
-            let attention_bk = vb.get_no_shape(&format!("{prefix}.attn_k.bias"))?;
-            let attention_bv = vb.get_no_shape(&format!("{prefix}.attn_v.bias"))?;
+            let attention_wq =
+                QMatMul::from_arc(vb.get_no_shape(&format!("{prefix}.attn_q.weight"))?)?;
+            let attention_wk =
+                QMatMul::from_arc(vb.get_no_shape(&format!("{prefix}.attn_k.weight"))?)?;
+            let attention_wv =
+                QMatMul::from_arc(vb.get_no_shape(&format!("{prefix}.attn_v.weight"))?)?;
+            let attention_wo =
+                QMatMul::from_arc(vb.get_no_shape(&format!("{prefix}.attn_output.weight"))?)?;
 
-            let attention_wo = vb.get_no_shape(&format!("{prefix}.attn_output.weight"))?;
+            let attention_bq = vb
+                .get_no_shape(&format!("{prefix}.attn_q.bias"))?
+                .dequantize(device)?;
+            let attention_bk = vb
+                .get_no_shape(&format!("{prefix}.attn_k.bias"))?
+                .dequantize(device)?;
+            let attention_bv = vb
+                .get_no_shape(&format!("{prefix}.attn_v.bias"))?
+                .dequantize(device)?;
 
             let mlp = {
-                let feed_forward_w1 = vb.get_no_shape(&format!("{prefix}.ffn_gate.weight"))?;
-                let feed_forward_w2 = vb.get_no_shape(&format!("{prefix}.ffn_down.weight"))?;
-                let feed_forward_w3 = vb.get_no_shape(&format!("{prefix}.ffn_up.weight"))?;
+                let feed_forward_w1 =
+                    QMatMul::from_arc(vb.get_no_shape(&format!("{prefix}.ffn_gate.weight"))?)?;
+                let feed_forward_w2 =
+                    QMatMul::from_arc(vb.get_no_shape(&format!("{prefix}.ffn_down.weight"))?)?;
+                let feed_forward_w3 =
+                    QMatMul::from_arc(vb.get_no_shape(&format!("{prefix}.ffn_up.weight"))?)?;
+
                 Mlp {
-                    feed_forward_w1: QMatMul::from_qtensor(
-                        Arc::try_unwrap(feed_forward_w1).unwrap(),
-                    )?,
-                    feed_forward_w2: QMatMul::from_qtensor(
-                        Arc::try_unwrap(feed_forward_w2).unwrap(),
-                    )?,
-                    feed_forward_w3: QMatMul::from_qtensor(
-                        Arc::try_unwrap(feed_forward_w3).unwrap(),
-                    )?,
+                    feed_forward_w1,
+                    feed_forward_w2,
+                    feed_forward_w3,
                 }
             };
 
-            let attention_norm = RmsNorm::from_qtensor(
-                Arc::try_unwrap(vb.get_no_shape(&format!("{prefix}.attn_norm.weight"))?).unwrap(),
+            let attention_norm = RmsNorm::from_arc(
+                vb.get_no_shape(&format!("{prefix}.attn_norm.weight"))?,
                 rms_norm_eps,
             )?;
-            let ffn_norm = RmsNorm::from_qtensor(
-                Arc::try_unwrap(vb.get_no_shape(&format!("{prefix}.ffn_norm.weight"))?).unwrap(),
+            let ffn_norm = RmsNorm::from_arc(
+                vb.get_no_shape(&format!("{prefix}.ffn_norm.weight"))?,
                 rms_norm_eps,
             )?;
 
@@ -264,13 +265,13 @@ impl ModelWeights {
             let span_mlp = tracing::span!(tracing::Level::TRACE, "attn-mlp");
 
             layers.push(LayerWeights {
-                attention_wq: QMatMul::from_qtensor(Arc::try_unwrap(attention_wq).unwrap())?,
-                attention_wk: QMatMul::from_qtensor(Arc::try_unwrap(attention_wk).unwrap())?,
-                attention_wv: QMatMul::from_qtensor(Arc::try_unwrap(attention_wv).unwrap())?,
-                attention_bq: attention_bq.dequantize(device)?,
-                attention_bk: attention_bk.dequantize(device)?,
-                attention_bv: attention_bv.dequantize(device)?,
-                attention_wo: QMatMul::from_qtensor(Arc::try_unwrap(attention_wo).unwrap())?,
+                attention_wq,
+                attention_wk,
+                attention_wv,
+                attention_bq,
+                attention_bk,
+                attention_bv,
+                attention_wo,
                 attention_norm,
                 cos: cos.clone(),
                 sin: sin.clone(),

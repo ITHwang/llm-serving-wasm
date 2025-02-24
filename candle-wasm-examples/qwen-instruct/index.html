@@ -59,7 +59,7 @@
         config_url: "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/config.json",
         quantized: true,
         seq_len: 2048,
-        size: "676 GB",
+        size: "676 MB",
       },
       qwen_25_05_instruct_f16: {
         model_name: "qwen2.5-0.5b-instruct-f16.gguf",
@@ -153,7 +153,7 @@
             outStatus.hidden = true;
             outCounter.hidden = false;
             outGen.hidden = false;
-            outGen.innerHTML = snarkdown(prompt + sentence);
+            outGen.innerHTML = snarkdown(sentence);
             outCounter.innerHTML = `${(totalTime / 1000).toFixed(
               2
             )}s (${tokensSec.toFixed(2)} tok/s)`;

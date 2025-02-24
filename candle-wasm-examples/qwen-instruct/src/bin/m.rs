@@ -95,11 +95,13 @@ impl Model {
             .map_err(|m| JsError::new(&m.to_string()))?
             .get_ids()
             .to_vec();
+        self.tokens.extend(&tokens);
         let text = self
             .process(&tokens)
             .map_err(|m| JsError::new(&m.to_string()))?;
         Ok(text)
     }
+
     #[wasm_bindgen]
     pub fn next_token(&mut self) -> Result<String, JsError> {
         let last_token = *self.tokens.last().unwrap();
@@ -114,8 +116,9 @@ impl Model {
     fn process(&mut self, tokens: &[u32]) -> candle::Result<String> {
         let dev = Device::Cpu;
         let input = Tensor::new(tokens, &dev)?.unsqueeze(0)?;
-        // referred to candle-examples/examples/qwen-instruct/main.rs:82
-        let start_pos = tokens.len().saturating_sub(1);
+        // referred to candle-examples/examples/quantized-qwen-instruct/main.rs:309
+        let start_pos = self.tokens.len();
+
         let logits = match &mut self.model {
             SelectedModel::Normal(m) => m.forward(&input, start_pos)?,
             SelectedModel::Quantized(m) => m.forward(&input, start_pos)?,
@@ -124,11 +127,11 @@ impl Model {
         let logits = if self.repeat_penalty == 1. {
             logits
         } else {
-            let start_at = tokens.len().saturating_sub(self.repeat_last_n);
+            let start_at = self.tokens.len().saturating_sub(self.repeat_last_n);
             candle_transformers::utils::apply_repeat_penalty(
                 &logits,
                 self.repeat_penalty,
-                &tokens[start_at..],
+                &self.tokens[start_at..],
             )?
         };
 
@@ -141,6 +144,7 @@ impl Model {
                 "".to_string()
             }
         };
+
         // console_log!("token: {:?}: {:?}", token, next_token);
         Ok(token)
     }
