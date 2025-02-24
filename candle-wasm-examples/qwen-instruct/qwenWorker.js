@@ -5,19 +5,19 @@ async function fetchArrayBuffer(url, localURL) {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(url);
   if (cachedResponse) {
-    console.log("load model from cache");
+    console.log("load from cache");
     const data = await cachedResponse.arrayBuffer();
     return new Uint8Array(data);
   }
 
   const localResponse = await fetch(localURL, { cache: "force-cache" });
   if (localResponse.ok) {
-    console.log("load model from local");
+    console.log("load from local");
     cache.put(url, localResponse.clone());
     return new Uint8Array(await localResponse.arrayBuffer());
   }
 
-  console.log("load model from remote");
+  console.log("load from remote");
   const res = await fetch(url, { cache: "force-cache" });
   cache.put(url, res.clone());
   return new Uint8Array(await res.arrayBuffer());
@@ -133,23 +133,27 @@ async function generate(data) {
           self.postMessage({
             status: "aborted",
             message: "Aborted",
-            output: prompt + sentence,
+            output: sentence,
           });
           return;
         }
+
         const token = await model.next_token();
+
         if (token === "<|im_end|>") {
           self.postMessage({
             status: "complete",
             message: "complete",
-            output: prompt + sentence,
+            output: sentence,
           });
           return;
         }
+
         const tokensSec =
           ((tokensCount + 1) / (performance.now() - startTime)) * 1000;
 
         sentence += token;
+
         self.postMessage({
           status: "generating",
           message: "Generating token",
