@@ -24,8 +24,8 @@
 - [x] Quantized Qwen2.5-Instruct(*-q4_0)
 
 ### WASM Serving
-- [x] Qwen2.5-Instruct
-- [x] Quantized Qwen2.5-Instruct
+- [x] Qwen2.5-Instruct [demo](https://huggingface.co/spaces/ITHwangg/candle-qwen25-wasm-demo)
+- [x] Quantized Qwen2.5-Instruct [demo](https://huggingface.co/spaces/ITHwangg/candle-qwen25-wasm-demo)
 
 ## License
 - This repository was forked from the original `candle` repository which is licensed under the Apache License Version 2.0.
