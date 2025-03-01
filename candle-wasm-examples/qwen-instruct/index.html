@@ -190,7 +190,7 @@
           if (status) updateStatus(event.data);
           if (error) {
             qwenWorker.removeEventListener("message", handleMessage);
-            reject(new Error(error));
+            reject(new Error(`ERROR: ${error}. Please check available RAM in your local machine.`));
           }
           if (status === "aborted") {
             qwenWorker.removeEventListener("message", handleMessage);
