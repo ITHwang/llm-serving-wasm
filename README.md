@@ -4,8 +4,7 @@
 
 ## Overview
 
-- [Candle](https://github.com/huggingface/candle) is one of the most fascinating Deep Learning frameworks written in Rust that is also the most popular language for WebAssembly.
-- These things make it possible to provide serverless AI inference in user's browsers.
+- [Candle](https://github.com/huggingface/candle) is a Rust-based Deep Learning framework that can leverage Rust's strong WebAssembly capabilities.
 - Inspired by the below online demos, I've made up my mind to build the other demos with state-of-the-art LLMs.
   - [yolo](https://huggingface.co/spaces/lmz/candle-yolo): pose estimation and
     object recognition.
