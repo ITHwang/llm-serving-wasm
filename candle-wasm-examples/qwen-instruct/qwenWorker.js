@@ -106,10 +106,9 @@ async function generate(data) {
       64,
       BigInt(seed)
     );
-    const seq_len = 2048;
 
     let sentence = firstToken;
-    let maxTokens = maxSeqLen ? maxSeqLen : seq_len - promptString.length - 1;
+    let maxTokens = maxSeqLen;
     let startTime = performance.now();
     let tokensCount = 0;
     while (tokensCount < maxTokens) {
