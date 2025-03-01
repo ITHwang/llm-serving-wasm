@@ -97,24 +97,6 @@
         seq_len: 2048,
         size: "3.56 GB",
       },
-      qwen_25_30_instruct_q4k: {
-        model_name: "qwen2.5-3b-instruct-q4_k_m.gguf",
-        model_url: "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf",
-        tokenizer_url: "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/resolve/main/tokenizer.json",
-        config_url: "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/resolve/main/config.json",
-        quantized: true,
-        seq_len: 2048,
-        size: "2.1 GB",
-      },
-      qwen_25_30_instruct_q80: {
-        model_name: "qwen2.5-3b-instruct-q8_0.gguf",
-        model_url: "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q8_0.gguf",
-        tokenizer_url: "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/resolve/main/tokenizer.json",
-        config_url: "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/resolve/main/config.json",
-        quantized: true,
-        seq_len: 2048,
-        size: "3.62 GB",
-      },
     };
 
     const qwenWorker = new Worker("./qwenWorker.js", {
