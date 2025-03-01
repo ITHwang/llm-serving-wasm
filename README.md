@@ -19,9 +19,9 @@
 
 ### CLI Serving
 - [x] Qwen2-Instruct
-- [x] Quantized Qwen2-Instruct(*-q4_0.gguf)
+- [x] Quantized Qwen2-Instruct(q4_0)
 - [x] Qwen2.5-Instruct
-- [x] Quantized Qwen2.5-Instruct(*-q4_0)
+- [x] Quantized Qwen2.5-Instruct(q4_0)
 
 ### WASM Serving
 - [x] Qwen2.5-Instruct [demo](https://huggingface.co/spaces/ITHwangg/candle-qwen25-wasm-demo)
