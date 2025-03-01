@@ -1,6 +1,6 @@
 import init, { Model } from "./build/m.js";
 
-async function fetchArrayBuffer(url, localURL) {
+async function fetchArrayBuffer(url) {
   const cacheName = "qwen-instruct-candle-cache";
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(url);
@@ -10,14 +10,7 @@ async function fetchArrayBuffer(url, localURL) {
     return new Uint8Array(data);
   }
 
-  const localResponse = await fetch(localURL, { cache: "force-cache" });
-  if (localResponse.ok) {
-    console.log("load from local");
-    cache.put(url, localResponse.clone());
-    return new Uint8Array(await localResponse.arrayBuffer());
-  }
-
-  console.log("load from remote");
+  console.log("load from huggingface");
   const res = await fetch(url, { cache: "force-cache" });
   cache.put(url, res.clone());
   return new Uint8Array(await res.arrayBuffer());
@@ -50,20 +43,12 @@ class Qwen {
     if (!this.instance[modelID]) {
       await init();
 
-      const weight_filename = weightsURL.split("/").filter(Boolean).pop()
-      const tokenizer_filename = tokenizerURL.split("/").filter(Boolean).pop()
-      const config_filename = configURL.split("/").filter(Boolean).pop()
-
-      const localWeightsURL = `./model/${modelID}/${weight_filename}`;
-      const localTokenizerURL = `./model/${modelID}/${tokenizer_filename}`;
-      const localConfigURL = `./model/${modelID}/${config_filename}`;
-
       self.postMessage({ status: "loading", message: "Loading Model" });
       const [weightsArrayU8, tokenizerArrayU8, configArrayU8] =
         await Promise.all([
-          weightsURL instanceof Array ? concatenateArrayBuffers(weightsURL) : fetchArrayBuffer(weightsURL, localWeightsURL),
-          fetchArrayBuffer(tokenizerURL, localTokenizerURL),
-          fetchArrayBuffer(configURL, localConfigURL),
+          weightsURL instanceof Array ? concatenateArrayBuffers(weightsURL) : fetchArrayBuffer(weightsURL),
+          fetchArrayBuffer(tokenizerURL),
+          fetchArrayBuffer(configURL),
         ]);
 
       this.instance[modelID] = new Model(
